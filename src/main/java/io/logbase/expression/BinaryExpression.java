@@ -178,9 +178,40 @@ public class BinaryExpression {
 
   }
 
-  public String getInfix() {
-    // TODO
-    return null;
+  public List getInorder() {
+    List inorder = new ArrayList();
+    if (rootNode != null) {
+      inorderTraverse(rootNode, inorder);
+    }
+    return inorder;
+  }
+
+  private void inorderTraverse(Node node, List inorder) {
+    Node left = node.leftNode;
+    Node right = node.rightNode;
+    if (left != null)
+      inorderTraverse(left, inorder);
+    inorder.add(node.value);
+    if (right != null)
+      inorderTraverse(right, inorder);
+  }
+
+  public List getPostOrder() {
+    List postorder = new ArrayList();
+    if (rootNode != null) {
+      postorderTraverse(rootNode, postorder);
+    }
+    return postorder;
+  }
+
+  private void postorderTraverse(Node node, List postorder) {
+    Node left = node.leftNode;
+    Node right = node.rightNode;
+    if (left != null)
+      postorderTraverse(left, postorder);
+    if (right != null)
+      postorderTraverse(right, postorder);
+    postorder.add(node.value);
   }
 
   private static class Node {
@@ -201,6 +232,7 @@ public class BinaryExpression {
     public void setRightNode(Node rightNode) {
       this.rightNode = rightNode;
     }
+
   }
 
   public static void main(String[] args) {
@@ -209,7 +241,8 @@ public class BinaryExpression {
         + "((in_reply_to_screen_name.String) = \"smiley ugly  bieber15\")";
     String separator = " ";
     BinaryExpression be = new BinaryExpression(stringExpression);
-    System.out.println("Infix: " + be.getInfix());
+    System.out.println("Inorder: " + be.getInorder());
+    System.out.println("Postorder: " + be.getPostOrder());
   }
 
 }
