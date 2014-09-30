@@ -1,16 +1,29 @@
-package io.logbase.expression;
+package io.logbase.expression.refimpl;
+
+import io.logbase.expression.Expression;
+import io.logbase.expression.ExpressionNode;
+import io.logbase.expression.ExpressionNodeType;
+import io.logbase.expression.Operation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 
-public class BinaryExpression {
+public class BinaryExpression implements Expression {
 
-  private Node rootNode;
+  private BinaryExpressionNode rootNode;
+  private final Stack operationStack = new Stack();
+  private final Stack mainStack;
 
   public BinaryExpression(String stringExpression) {
     tokenize(stringExpression);
+    mainStack = getPostOrder();
+  }
+
+  @Override
+  public ExpressionNode getRootNode() {
+    return rootNode;
   }
 
   private void tokenize(String stringExpression) {
@@ -88,7 +101,7 @@ public class BinaryExpression {
     Object lOpr = null;
     Object rOpr = null;
     String op = null;
-    Node newNode = null;
+    BinaryExpressionNode newNode = null;
     for (String t : tokens3) {
 
       if (t.equals("(")) {
@@ -110,11 +123,11 @@ public class BinaryExpression {
         }
         lOpr = stack.pop();
         stack.pop(); //Pop out the open bracket, verify if this holds good for all
-        newNode = new Node("op", op);
-        newNode.setLeftNode(lOpr.getClass().isInstance(newNode) ? (Node) lOpr
-                : new Node("opr", lOpr));
-        newNode.setRightNode(rOpr.getClass().isInstance(newNode) ? (Node) rOpr
-                : new Node("opr", rOpr));
+        newNode = new BinaryExpressionNode(ExpressionNodeType.OPERATOR, op);
+        newNode.setLeftNode(lOpr.getClass().isInstance(newNode) ? (BinaryExpressionNode) lOpr
+                : new BinaryExpressionNode(ExpressionNodeType.OPERAND, lOpr));
+        newNode.setRightNode(rOpr.getClass().isInstance(newNode) ? (BinaryExpressionNode) rOpr
+                : new BinaryExpressionNode(ExpressionNodeType.OPERAND, rOpr));
         stack.push(newNode);
         lOpr = newNode;
         rOpr = null;
@@ -159,90 +172,97 @@ public class BinaryExpression {
           op = (String) invStack.pop();
         else {
           rOpr = invStack.pop();
-          newNode = new Node("op", op);
-          newNode.setLeftNode(lOpr.getClass().isInstance(newNode) ? (Node) lOpr
-                  : new Node("opr", lOpr));
+          newNode = new BinaryExpressionNode(ExpressionNodeType.OPERATOR, op);
+          newNode.setLeftNode(lOpr.getClass().isInstance(newNode) ? (BinaryExpressionNode) lOpr
+                  : new BinaryExpressionNode(ExpressionNodeType.OPERAND, lOpr));
           newNode
-              .setRightNode(rOpr.getClass().isInstance(newNode) ? (Node) rOpr
-                  : new Node("opr", rOpr));
+              .setRightNode(rOpr.getClass().isInstance(newNode) ? (BinaryExpressionNode) rOpr
+                  : new BinaryExpressionNode(ExpressionNodeType.OPERAND, rOpr));
           lOpr = null;
           op = null;
           rOpr = null;
         }
       }
       if (lOpr != null)
-        rootNode = (Node) lOpr;
+        rootNode = (BinaryExpressionNode) lOpr;
       else
         rootNode = newNode;
     }
 
   }
 
-  public List getInorder() {
-    List inorder = new ArrayList();
-    if (rootNode != null) {
-      inorderTraverse(rootNode, inorder);
-    }
-    return inorder;
-  }
-
-  private void inorderTraverse(Node node, List inorder) {
-    Node left = node.leftNode;
-    Node right = node.rightNode;
-    if (left != null)
-      inorderTraverse(left, inorder);
-    inorder.add(node.value);
-    if (right != null)
-      inorderTraverse(right, inorder);
-  }
-
-  public List getPostOrder() {
-    List postorder = new ArrayList();
+  public Stack getPostOrder() {
+    Stack postorder = new Stack();
     if (rootNode != null) {
       postorderTraverse(rootNode, postorder);
     }
-    return postorder;
+    // reverse the stack and return
+    Stack postorderRev = new Stack();
+    while (!postorder.isEmpty())
+      postorderRev.push(postorder.pop());
+    return postorderRev;
   }
 
-  private void postorderTraverse(Node node, List postorder) {
-    Node left = node.leftNode;
-    Node right = node.rightNode;
+  private void postorderTraverse(BinaryExpressionNode node, Stack postorder) {
+    BinaryExpressionNode left = node.getLeftNode();
+    BinaryExpressionNode right = node.getRightNode();
     if (left != null)
       postorderTraverse(left, postorder);
     if (right != null)
       postorderTraverse(right, postorder);
-    postorder.add(node.value);
+    postorder.push(node.getValue());
   }
 
-  private static class Node {
-    private String type;
-    private Object value;
-    private Node leftNode;
-    private Node rightNode;
-
-    public Node(String type, Object value) {
-      this.type = type;
-      this.value = value;
-    }
-
-    public void setLeftNode(Node leftNode) {
-      this.leftNode = leftNode;
-    }
-
-    public void setRightNode(Node rightNode) {
-      this.rightNode = rightNode;
-    }
-
+  @Override
+  public boolean isFullyExecuted() {
+    if ((mainStack.isEmpty()) && (operationStack.size() == 1))
+      return true;
+    else
+      return false;
   }
 
-  public static void main(String[] args) {
-    String stringExpression = "((id.Double = 461506965680951296) "
-        + "AND ((user.screen_name.String) = jileyssex)) OR "
-        + "((in_reply_to_screen_name.String) = \"smiley ugly  bieber15\")";
-    String separator = " ";
-    BinaryExpression be = new BinaryExpression(stringExpression);
-    System.out.println("Inorder: " + be.getInorder());
-    System.out.println("Postorder: " + be.getPostOrder());
+  @Override
+  public Operation getNextOperation() {
+    // TODO Handle error cases
+    Object leftOpr = null;
+    Object rightOpr = null;
+    String op = null;
+    Operator o = null;
+    leftOpr = mainStack.pop();
+    if ((leftOpr instanceof String) && (OperatorUtil.checkOperator((String)leftOpr) != null) ) {
+      // This implies 2 operands are in the op stack
+      o = OperatorUtil.checkOperator((String) leftOpr);
+      rightOpr = operationStack.pop();
+      leftOpr = operationStack.pop();
+      return new Operation(o, new Object[] { leftOpr, rightOpr });
+    } else {
+        rightOpr = mainStack.pop();
+        if ((rightOpr instanceof String) && (OperatorUtil.checkOperator((String) rightOpr) != null) ) {
+        // This implies left operand is in the op stack
+          o = OperatorUtil.checkOperator((String) rightOpr);
+          rightOpr = leftOpr;
+          leftOpr = operationStack.pop();
+          return new Operation(o, new Object[] { leftOpr, rightOpr });
+        } else {
+          // After two operands it has to be an operator
+          op = (String) mainStack.pop();
+          o = OperatorUtil.checkOperator(op);
+          return new Operation(o, new Object[] { leftOpr, rightOpr });
+        }
+      }
+  }
+
+  @Override
+  public void storeLastOperationOutput(Object output) {
+    operationStack.push(output);
+  }
+
+  @Override
+  public Object getLastOperationOutput() {
+    if (operationStack.isEmpty())
+      return null;
+    else
+      return operationStack.pop();
   }
 
 }
