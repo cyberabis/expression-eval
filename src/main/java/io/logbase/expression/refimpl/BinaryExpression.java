@@ -13,7 +13,7 @@ import java.util.Stack;
 public class BinaryExpression implements Expression {
 
   private BinaryExpressionNode rootNode;
-  private final Stack operationStack = new Stack();
+  private final Stack execStack = new Stack();
   private final Stack mainStack;
 
   public BinaryExpression(String stringExpression) {
@@ -215,7 +215,7 @@ public class BinaryExpression implements Expression {
 
   @Override
   public boolean isFullyExecuted() {
-    if ((mainStack.isEmpty()) && (operationStack.size() == 1))
+    if ((mainStack.isEmpty()) && (execStack.size() == 1))
       return true;
     else
       return false;
@@ -232,8 +232,8 @@ public class BinaryExpression implements Expression {
     if ((leftOpr instanceof String) && (OperatorUtil.checkOperator((String)leftOpr) != null) ) {
       // This implies 2 operands are in the op stack
       o = OperatorUtil.checkOperator((String) leftOpr);
-      rightOpr = operationStack.pop();
-      leftOpr = operationStack.pop();
+      rightOpr = execStack.pop();
+      leftOpr = execStack.pop();
       return new Operation(o, new Object[] { leftOpr, rightOpr });
     } else {
         rightOpr = mainStack.pop();
@@ -241,7 +241,7 @@ public class BinaryExpression implements Expression {
         // This implies left operand is in the op stack
           o = OperatorUtil.checkOperator((String) rightOpr);
           rightOpr = leftOpr;
-          leftOpr = operationStack.pop();
+        leftOpr = execStack.pop();
           return new Operation(o, new Object[] { leftOpr, rightOpr });
         } else {
           // After two operands it has to be an operator
@@ -254,15 +254,15 @@ public class BinaryExpression implements Expression {
 
   @Override
   public void storeLastOperationOutput(Object output) {
-    operationStack.push(output);
+    execStack.push(output);
   }
 
   @Override
   public Object getLastOperationOutput() {
-    if (operationStack.isEmpty())
+    if (execStack.isEmpty())
       return null;
     else
-      return operationStack.pop();
+      return execStack.pop();
   }
 
 }

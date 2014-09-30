@@ -12,10 +12,8 @@ public class BinaryExpressionTest {
     String stringExpression = "((id.Double = 461506965680951296) "
         + "AND ((user.screen_name.String) = jileyssex)) OR "
         + "((in_reply_to_screen_name.String) = \"smiley ugly  bieber15\")";
-    String separator = " ";
     BinaryExpression be = new BinaryExpression(stringExpression);
-    System.out.println("Postorder: " + be.getPostOrder());
-
+    System.out.println("Postorder in reverse: " + be.getPostOrder());
     ExpressionExecutor.execute(be, new DummyFunctionFactory());
   }
 
